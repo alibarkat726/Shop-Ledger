@@ -1,0 +1,38 @@
+[33mcommit c8cddb2f15100105914d3d57688d7ca73650df91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmy-initial-commit[m[33m)[m
+Author: Ali Barkat <alibarkat777s@gmail.com>
+Date:   Wed May 21 15:31:38 2025 +0500
+
+    initial commit 2
+
+[33mcommit 89b68ca9a71e6f1ba5ba408519b7ac3432026e65[m[33m ([m[1;31morigin/master[m[33m)[m
+Merge: 19d38f7 446e083
+Author: ali-barkat777 <alibarkat777s@gmail.com>
+Date:   Mon Apr 14 11:31:04 2025 +0500
+
+    Merge pull request #1 from ali-barkat777/my-initial-commit
+    
+    My initial commit
+
+[33mcommit 446e08363f7151f4659979025c35a617f79fb60b[m[33m ([m[1;31morigin/my-initial-commit[m[33m)[m
+Author: Ali Barkat <alibarkat777s@gmail.com>
+Date:   Mon Apr 14 11:20:00 2025 +0500
+
+    Remove sensitive firebase config
+
+[33mcommit 1c3c62cc474a6ae47496c48e8b5f48ada6e9e79e[m[33m ([m[1;32mmaster[m[33m)[m
+Author: Ali Barkat <alibarkat777s@gmail.com>
+Date:   Mon Apr 14 11:07:58 2025 +0500
+
+    initial commit 2
+
+[33mcommit 8771ef373a977c7c6fb4c97b5d1cf7bb5cd3e34e[m
+Author: Ali Barkat <alibarkat777s@gmail.com>
+Date:   Sun Mar 9 04:56:29 2025 +0500
+
+    initial commit
+
+[33mcommit 19d38f78456a610054707ce86e89366c37dd0323[m
+Author: Ali Barkat <alibarkat777s@gmail.com>
+Date:   Wed Feb 26 12:28:56 2025 +0500
+
+    initial commit
