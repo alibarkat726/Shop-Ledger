@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
+
 import com.App.Shop_Ledger.Dto.FilterSalesDto;
 import com.App.Shop_Ledger.Dto.ReceiptDto;
 import com.App.Shop_Ledger.Service.SalesService;
@@ -29,17 +31,21 @@ public class ReceiptController {
     public ResponseEntity<?> createReceipt(@RequestBody ReceiptDto request){
        return receiptService.createReceipt(request.getProductIds(),request.getCustomer(),request.getCharge());
     }
-
     @GetMapping("/get/all")
     public List<Receipt>getReceipt(){
       return receiptService.getReceipt();
 }
 
-@GetMapping("/get")
-public Receipt getReceiptById(@RequestParam String id){
-        return receiptService.getReceiptById(id);
-}
-
+    @GetMapping("/get")
+    public ResponseEntity<Map<String, Object>> getReceipt(@RequestParam String id) {
+        try {
+            Map<String, Object> receipt = receiptService.getReceiptById(id);
+            return ResponseEntity.ok(receipt);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 
 @GetMapping("/date")
     public FilterSalesDto getReceiptByDate(@RequestParam(required = false) String startDate,

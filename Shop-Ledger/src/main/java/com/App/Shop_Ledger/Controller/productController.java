@@ -1,6 +1,7 @@
 package com.App.Shop_Ledger.Controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import com.App.Shop_Ledger.Dto.ProductDto;
 import com.App.Shop_Ledger.User.UserRepo;
@@ -24,41 +25,31 @@ import com.App.Shop_Ledger.model.Products;
 @RestController
 @RequestMapping("/product")
 public class productController {
-
     @Autowired
     productService productService;
 @Autowired
     UserRepo userRepo;
-
     @PostMapping("/add")
     public ResponseEntity<?> addProduct(@RequestBody ProductDto productDto){
-//        Optional<Users> users = userRepo.findById(userId);
-//        if (users.isEmpty()){
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User with this id not found");
-//        }else {
-        ResponseEntity<?> products = productService.addPrd(productDto);
-        return new ResponseEntity<>(products, HttpStatus.CREATED);
+        return productService.addPrd(productDto);
 }
-    @GetMapping("/id")
-    public ResponseEntity<?> getProductsByUser(@RequestParam String userId) {
-        return productService.getProductsByUser(userId);
-    }
-
+//    @GetMapping("/id")
+//    public ResponseEntity<?> getProductsByUser(@RequestParam String userId) {
+//        return productService.getProductsByUser(userId);
+//    }
 @GetMapping("/all")
 public List<Products> getAllPrd(Products products){
         return productService.getAllPrd(products);
 }
 
-
 @DeleteMapping("/delete")
-  public ResponseEntity<String> deleteProductById(@RequestParam String id){
+  public ResponseEntity<Map<String,Object>> deleteProductById(@RequestParam String id){
         return productService.deleteProduct(id);
           }
 
-
 @PutMapping("/update")
-public void updateProduct(@RequestParam String id, @RequestBody Products products)  {
-  productService.updateProduct(id,products);
+public ResponseEntity<Map<String,Object>> updateProduct(@RequestParam String id, @RequestBody Products products)  {
+  return productService.updateProduct(id,products);
 
 }
 
@@ -71,9 +62,7 @@ public List<Products> getPrdById(@RequestParam String id){
 @GetMapping("/search")
     public ResponseEntity<List<Products>> searchProduct(@RequestParam String keyword,
                                                         @RequestParam(defaultValue = "false")boolean useFullText){
-
         return ResponseEntity.ok(productService.searchProduct(keyword,useFullText));
 }
-
     }
 

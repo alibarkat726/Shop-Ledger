@@ -2,9 +2,7 @@ package com.App.Shop_Ledger.Service;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import com.App.Shop_Ledger.Dto.FilterSalesDto;
 import com.App.Shop_Ledger.Dto.ReceiptDto;
@@ -20,11 +18,8 @@ import com.App.Shop_Ledger.Repository.ReceiptRepository;
 import com.App.Shop_Ledger.Repository.productRepo;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-
 @Service
 public class ReceiptService {
-
   @Autowired
    private productRepo productRepository;
    private final  ReceiptRepository receiptRepository;
@@ -34,10 +29,8 @@ public class ReceiptService {
    }
    @Autowired
     SalesRepository salesRepository;
-
    //create receipts
    public ResponseEntity<?> createReceipt(List<ReceiptProductDto> productIds, String customer, Charge charge) {
-
        try {
            if (productIds == null || productIds.isEmpty()) {
                return ResponseEntity.badRequest().body("Product IDs list cannot be empty");
@@ -116,8 +109,6 @@ public class ReceiptService {
                    sales.setTotalSalesByCash(sales.getTotalSalesByCash() + totalAmount);
                    salesRepository.save(sales);
                    System.out.println("paid By cash");
-
-
                }else {
                    System.out.println("please enter a valid  payment method");
                }
@@ -149,8 +140,6 @@ public class ReceiptService {
            sales.setGrossSale(sales.getGrossSale() + totalAmount);
            salesRepository.save(sales);
            }
-
-
            return ResponseEntity.status(HttpStatus.CREATED).body(receipt);
 
        } catch (Exception e) {
@@ -165,10 +154,42 @@ public class ReceiptService {
 
     }
 //Get receipt by id
-    public Receipt getReceiptById(String id) {
-       return receiptRepository.findById(id).orElse(null);
+public Map<String, Object> getReceiptById(String id) {
+    Receipt receipt = receiptRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Receipt not found with id: " + id));
 
+    Map<String, Object> response = new HashMap<>();
+    response.put("receiptId", receipt.getId());
+    response.put("customer", receipt.getCustomer());
+    response.put("date", receipt.getCreateDate().toString());  // format later if needed
+    response.put("totalAmount", receipt.getTotalAmount());
+    response.put("discountAmount", receipt.getDiscountAmount());
+
+    // Products
+    List<Map<String, Object>> productList = new ArrayList<>();
+    for (ReceiptProduct product : receipt.getProducts()) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("name", product.getName());
+        p.put("qty", product.getQuantity());
+        p.put("price", product.getPrice());
+        p.put("total", product.getQuantity() * product.getPrice());
+        productList.add(p);
     }
+    response.put("products", productList);
+
+    // Charges (if you have multiple payment methods like Cash/Card)
+    if (receipt.getCharge() != null) {
+        Map<String, Object> chargeMap = new HashMap<>();
+        chargeMap.put("method", receipt.getCharge());
+        chargeMap.put("amount", receipt.getCharge());
+        response.put("charge", chargeMap);
+    }
+
+    response.put("lastModifiedDate", receipt.getLastModifiedDate().toString());
+
+    return response;
+}
+
     //Filter By date
     public FilterSalesDto filterReceiptByDate(LocalDateTime startOfDay, LocalDateTime endOfDay) {
         if (startOfDay == null && endOfDay != null) {

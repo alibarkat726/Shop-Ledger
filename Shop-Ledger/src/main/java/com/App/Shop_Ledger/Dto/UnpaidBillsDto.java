@@ -17,8 +17,6 @@ public class UnpaidBillsDto {
     private double totalCount;
     private double totalAmount;
 
-
-
     public UnpaidBillsDto(List<UnpaidBills> unpaidBills, String customer, double totalCount,double totalAmountPending) {
         this.unpaidBills = unpaidBills;
         this.customer = customer;

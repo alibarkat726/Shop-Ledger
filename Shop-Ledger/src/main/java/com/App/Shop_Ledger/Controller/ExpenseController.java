@@ -44,7 +44,6 @@ public class ExpenseController {
     public ResponseEntity<String> deleteExpenseByID(@RequestParam String id) {
         return expenseService.deleteExpenseById(id);
     }
-
     @GetMapping("/date")
     public ExpenseDto getReceiptByDate(@RequestParam(required = false) String startDate,
                                        @RequestParam(required = false) String endDate) {

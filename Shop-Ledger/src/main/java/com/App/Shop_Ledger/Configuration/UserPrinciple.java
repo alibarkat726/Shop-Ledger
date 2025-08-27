@@ -14,12 +14,10 @@ public class UserPrinciple implements UserDetails {
     public UserPrinciple(Users user) {
         this.user = user;
     }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singleton(new  SimpleGrantedAuthority("User"));
     }
-
     @Override
     public String getPassword() {
         return user.getPassword();

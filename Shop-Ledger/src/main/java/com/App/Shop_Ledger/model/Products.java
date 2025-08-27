@@ -22,7 +22,4 @@ public class Products {
     @DBRef
     private Category category;
     private Long price;
-
-    private String userId;
-
 }

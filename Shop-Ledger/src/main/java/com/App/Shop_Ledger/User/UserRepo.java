@@ -8,7 +8,4 @@ public interface UserRepo extends MongoRepository<Users, String> {
     List<Users> findByUsername(String username);
     boolean existsByUsernameAndRole(String username, String role);
 
-
-
-
 }

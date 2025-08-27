@@ -1,5 +1,6 @@
 package com.App.Shop_Ledger.Repository;
 import com.App.Shop_Ledger.Dto.ReceiptProductDto;
+import com.App.Shop_Ledger.model.Category;
 import com.App.Shop_Ledger.model.Products;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
@@ -21,7 +22,9 @@ public interface productRepo extends MongoRepository<Products, String > {
 
     List<Products> searchByPartialMatch(String keyword);
 
-    List<Products> findByUserId(String userId);
+    List<Products> findByCategory(Category category);
+
+//    List<Products> findByUserId(String userId);
 
 
 }

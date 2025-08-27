@@ -1,5 +1,4 @@
 package com.App.Shop_Ledger.Service;
-
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-
 @Service
 public class JwtService {
     private String secretKey = "";
@@ -32,11 +30,7 @@ public class JwtService {
             throw new RuntimeException(e);
         }
     }
-
-
-
     public String generateToken(String username,String id,String role) {
-
         JwtBuilder builder =  Jwts.builder()
                 .setSubject(username)
                 .setId(id)
@@ -46,20 +40,17 @@ public class JwtService {
                return builder.signWith(getKey())
                 .compact();
     }
-
     private SecretKey getKey() {
 
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
     public String extractRole(String token) {
         return (String) extractAllClaims(token).get("role");
     }
-
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver){
         final Claims claims = extractAllClaims(token);
         return claimResolver.apply(claims);
@@ -71,7 +62,6 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
     public boolean validateToken(String token, UserDetails userDetails) {
        try {
         final String username = extractUsername(token);
@@ -86,5 +76,4 @@ public class JwtService {
     private Date extractExpiration(String token){
         return extractClaim(token, Claims::getExpiration);
     }
-
 }

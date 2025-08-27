@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/category")
@@ -32,7 +33,11 @@ public class CategoryController {
         return categoryService.getCategoryById(id);
     }
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteById(@RequestParam String id){
+    public ResponseEntity<Map<String,Object>> deleteById(@RequestParam String id){
         return categoryService.deleteCategoryById(id);
+    }
+    @PutMapping("/update")
+    public ResponseEntity<Map<String, Object>> UpdateCategory(@RequestParam String id, @RequestBody Category category){
+        return categoryService.updateCategory(id, category);
     }
 }

@@ -23,8 +23,6 @@ public class MyUserDetailsService implements UserDetailsService {
     public MyUserDetailsService(UserRepo userRepo) {
         this.userRepo = userRepo;
     }
-
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         List<Users> usersList = userRepo.findByUsername(username);

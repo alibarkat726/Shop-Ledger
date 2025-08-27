@@ -40,7 +40,7 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getServletPath();
-        if ("/login".equals(path) || "/authenticate".equals(path) || "/api/otp/send".equals(path) || "/api/otp/verify".equals(path)) {
+        if ("/login".equals(path) || "/register".equals(path) || "/api/otp/send".equals(path) || "/api/otp/verify".equals(path)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -61,19 +61,16 @@ public class JwtFilter extends OncePerRequestFilter {
         response.getWriter().write("please enter the token");
         return;
     }
-
          if(username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             String role = jwtService.extractRole(token);
             List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                     new SimpleGrantedAuthority("ROLE_" + role)
             );
-
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(username, null, authorities);
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
-
         filterChain.doFilter(request, response);
     }
 }

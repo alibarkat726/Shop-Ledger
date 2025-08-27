@@ -28,14 +28,10 @@ public class OtpService {
 
         return otp;
     }
-
     public boolean verifyOtp(String email, String otp) {
         Optional<OtpEntry> optional = otpRepository.findByEmail(email);
-
         if (optional.isEmpty()) return false;
-
         OtpEntry entry = optional.get();
-
         if (entry.getExpiryTime().isBefore(LocalDateTime.now())) {
             otpRepository.deleteByEmail(email);
             return false;
