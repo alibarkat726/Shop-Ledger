@@ -7,10 +7,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -25,31 +23,29 @@ public class MyUserDetailsService implements UserDetailsService {
     }
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        List<Users> usersList = userRepo.findByUsername(username);
-        if (usersList == null || usersList.isEmpty()) {
-            throw new UsernameNotFoundException("User not found");
-        }
+        Users usersList = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
 
         // Use the username and password from one of the records (assuming they're consistent)
-        Users baseUser = usersList.get(0);
 
         // Merge roles from all user entries
         Set<String> roleSet = new HashSet<>();
-        for (Users user : usersList) {
-            if (user.getRole() != null) {
-                Arrays.stream(user.getRole().split(","))
+
+            if (usersList.getRole() != null) {
+                Arrays.stream(usersList.getRole().split(","))
                         .map(String::trim)
                         .forEach(roleSet::add);
             }
-        }
+
 
         List<SimpleGrantedAuthority> authorities = roleSet.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toList());
 
         return new org.springframework.security.core.userdetails.User(
-                baseUser.getUsername(),
-                baseUser.getPassword(),
+                usersList.getUsername(),
+                usersList.getPassword(),
                 authorities);
     }
     }

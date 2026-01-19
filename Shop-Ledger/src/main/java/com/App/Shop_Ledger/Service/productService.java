@@ -18,8 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-
 @Service
 public class productService {
 
@@ -35,7 +33,6 @@ public class productService {
     public List<Products> getAllPrd(Products products) {
         return productRepo.findAll();
     }
-
 
     public ResponseEntity<Map<String, Object>> deleteProduct(String id) {
         Map<String, Object> response = new HashMap<>();
@@ -66,45 +63,33 @@ public class productService {
                 existingProduct.setPrice(updatedProduct.getPrice());
                 return productRepo.save(existingProduct);
             }).orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
-
             response.put("status", "success");
             response.put("message", "Product updated successfully");
             response.put("data", updated);
-
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
-
     public List<Products> getprd(String id) {
-
         Products product = productRepo.findById(id).orElse(null);
-
         if (product != null) {
             return List.of(product);
         } else {
             return productRepo.findAll();
         }
-
     }
-
-
     public List<Products> searchProduct(String keyword, boolean useFullText) {
         if (useFullText) {
             return productRepo.searchByFullText(keyword);
         }
         return productRepo.searchByPartialMatch(keyword);
     }
-
     public ResponseEntity<?> addPrd(ProductDto productDto) {
         Category category = categoryRepository.findByName(productDto.getCategory());
         System.out.println(category);
-
         if (category == null) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");

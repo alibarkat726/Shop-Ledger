@@ -1,9 +1,6 @@
 package com.App.Shop_Ledger.Service;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 import javax.crypto.KeyGenerator;
@@ -11,6 +8,7 @@ import javax.crypto.SecretKey;
 
 //import com.App.Shop_Ledger.InvalidJwtException;
 import com.App.Shop_Ledger.InvalidJwtException;
+import com.App.Shop_Ledger.User.Users;
 import io.jsonwebtoken.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -19,8 +17,18 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
-    private String secretKey = "";
 
+
+
+    public String extractTenantId(String token) {
+        return extractAllClaims(token).get("tenantId", String.class);
+    }
+
+    public List<String> extractPermissions(String token) {
+        return extractAllClaims(token).get("permissions", List.class);
+    }
+
+    private String secretKey = "";
     public JwtService(){
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
@@ -30,14 +38,15 @@ public class JwtService {
             throw new RuntimeException(e);
         }
     }
-    public String generateToken(String username,String id,String role) {
-        JwtBuilder builder =  Jwts.builder()
-                .setSubject(username)
-                .setId(id)
-                .claim("role", role)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 1000));
-               return builder.signWith(getKey())
+    public String generateToken(Users user) {
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tenantId", user.getTenantId());
+        claims.put("role", user.getRole());
+        claims.put("permissions", user.getPermissions());
+
+        return Jwts.builder().claims(claims).subject(user.getUsername()).issuedAt(new Date()).expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .signWith(getKey())
                 .compact();
     }
     private SecretKey getKey() {

@@ -23,18 +23,13 @@ public class CategoryService {
     CategoryRepository categoryRepository;
     @Autowired
     productRepo productRepository;
-
-
     public Category createCategory(Category category) {
         try {
             return categoryRepository.save(category);
-
         }catch (Exception e){
             throw new RuntimeException("unable to save category");
         }
-
     }
-
     public ResponseEntity<Object> getCategory() {
         List<Category> categories = categoryRepository.findAll();
         if (categories.isEmpty()){
@@ -55,7 +50,6 @@ public class CategoryService {
             throw new RuntimeException("Unable to find category with this request");
         }
     }
-
     public ResponseEntity<Map<String, Object>> deleteCategoryById(String id) {
         Map<String, Object> response = new HashMap<>();
         try {
@@ -74,7 +68,6 @@ public class CategoryService {
                 }
                 // Step 3: Delete the category
                 categoryRepository.deleteById(id);
-
                 response.put("status", "success");
                 response.put("message", "Category deleted successfully and references removed from products");
                 return ResponseEntity.ok(response);

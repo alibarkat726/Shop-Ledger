@@ -18,13 +18,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/Unpaid")
 public class UnpaidBillsController {
-
     @Autowired
     UnpaidBillsService unpaidBillsService;
     @GetMapping("/get")
     public List<UnpaidBills> getBills(){
         return unpaidBillsService.getBills();
-    }
+    } 
     @PostMapping("/create")
     public ResponseEntity<?> unpaidBills(@RequestBody ReceiptDto request){
         return unpaidBillsService.UnpaidBills(request.getProductIds(),request.getCustomer());

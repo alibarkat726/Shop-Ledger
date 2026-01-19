@@ -1,6 +1,7 @@
 package com.App.Shop_Ledger.User;
 
 import com.App.Shop_Ledger.Dto.LoginDto;
+import com.App.Shop_Ledger.Dto.SignupRequest;
 import com.App.Shop_Ledger.Service.JwtService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -21,41 +22,75 @@ public class UserService {
 
     @Autowired
     private UserRepo userRepo;
+
+    @Autowired
+    private TenantRepo tenantRepo;
+
     @Autowired
     private JwtService jwtService;
 
     @Autowired
-    AuthenticationManager authManager;
-
+    private AuthenticationManager authManager;
 
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-    public Users register(Users users){
-        try {
-        users.setPassword(encoder.encode(users.getPassword()));
-        if (users.getRole() == null || users.getRole().isEmpty()){
-            users.setRole("USER");
+    // =========================
+    // OWNER SIGNUP
+    // =========================
+    public void registerOwner(SignupRequest request) {
+
+        // Prevent duplicate owner email
+        if (userRepo.existsByUsername(request.getEmail())) {
+            throw new RuntimeException("Email already registered");
         }
-    userRepo.save(users);
-    return users;
-    }catch (Exception e){
-        throw new RuntimeException("unable to register");}
+
+        // 1️⃣ Create Tenant
+        Tenant tenant = new Tenant();
+        tenant.setName(request.getBusinessName());
+        tenant.setPlan("FREE");
+        tenant.setStatus("ACTIVE");
+        tenantRepo.save(tenant);
+
+        // 2️⃣ Create ADMIN User
+        Users admin = new Users();
+        admin.setUsername(request.getEmail());
+        admin.setPassword(encoder.encode(request.getPassword()));
+        admin.setTenantId(tenant.getId());
+        admin.setRole("ADMIN");
+        admin.setPermissions(List.of(
+                "CREATE_RECEIPT",
+                "VIEW_REPORTS",
+                "MANAGE_EMPLOYEES",
+                "VIEW_AI_INSIGHTS"
+        ));
+        admin.setStatus("ACTIVE");
+
+        userRepo.save(admin);
     }
 
-    public Map<String, String> verify(LoginDto loginDto) {
-        Authentication authentication = authManager.
-                authenticate(new UsernamePasswordAuthenticationToken(loginDto.getUsername(),loginDto.getPassword()));
-        List<Users> login = userRepo.findByUsername(loginDto.getUsername());
-        boolean SameRoleExists = login.stream()
-                .anyMatch(users2 -> users2.getRole().equalsIgnoreCase(loginDto.getRole()));
-        if (authentication.isAuthenticated() && SameRoleExists){
-            String token = jwtService.generateToken(loginDto.getUsername(),loginDto.getPassword(), loginDto.getRole());
-            Map<String, String> response = new HashMap<>();
-            response.put("token", token);
-            return response;
-        }else {
-         throw new RuntimeException("enter a valid role");
-        }
-    }
+    // =========================
+    // LOGIN (ADMIN / EMPLOYEE)
+    // =========================
+    public Map<String, String> login(LoginDto loginDto) {
 
+        Authentication authentication = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginDto.getUsername(),
+                        loginDto.getPassword()
+                )
+        );
+
+        if (!authentication.isAuthenticated()) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
+        Users user = userRepo.findByUsername(loginDto.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = jwtService.generateToken(user);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
+        return response;
+    }
 }
