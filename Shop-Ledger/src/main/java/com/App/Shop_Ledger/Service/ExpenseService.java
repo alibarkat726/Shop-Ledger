@@ -1,11 +1,10 @@
 package com.App.Shop_Ledger.Service;
 
 import com.App.Shop_Ledger.Dto.ExpenseDto;
-import com.App.Shop_Ledger.Dto.FilterSalesDto;
 import com.App.Shop_Ledger.Repository.ExpenseRepository;
 import com.App.Shop_Ledger.Repository.SalesRepository;
+import com.App.Shop_Ledger.User.TenantContext;
 import com.App.Shop_Ledger.model.Expenses;
-import com.App.Shop_Ledger.model.Receipt;
 import com.App.Shop_Ledger.model.Sales;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,61 +23,72 @@ public class ExpenseService {
 
     @Autowired
     SalesRepository salesRepository;
+    
+    @Autowired
+    SalesService salesService;
 
     public Expenses paidOut(double amount, String purchasedItem, String description) {
         if (amount <= 0) {
             throw new RuntimeException("amount should be above zero");
         }
+        String tenantId = TenantContext.getTenantId();
+        
         Expenses expenses = new Expenses(amount, purchasedItem, description);
+        expenses.setTenantId(tenantId); // Set tenantId
+        expenses.setCreatedDate(LocalDateTime.now());
         try {
-            List<Sales> allSaleRecord = salesRepository.findAll();
-            Sales sales;
-            if (allSaleRecord.isEmpty()) {
-                sales = new Sales();
-            } else {
-                sales = allSaleRecord.get(allSaleRecord.size() - 1);
+            Sales sales = salesRepository.findByTenantId(tenantId).stream()
+                    .findFirst()
+                    .orElse(new Sales());
+            
+            if (sales.getId() == null) {
+                sales.setTenantId(tenantId);
+                sales.setRecordDate(LocalDateTime.now());
             }
-//            for (int i = 0; i< allSaleRecord.size() - 1;i++){
-//                salesRepository.delete(allSaleRecord.get(i));
-//            }
+
             sales.setGrossSale(sales.getGrossSale() - amount);
             sales.setTotalExpense(sales.getTotalExpense() + amount);
             salesRepository.save(sales);
+            
             return expenseRepository.save(expenses);
         } catch (Exception e) {
-            throw new RuntimeException("Unable to paid out");
+            throw new RuntimeException("Unable to pay out: " + e.getMessage());
         }
     }
 
 
     public List<Expenses> getExpenses() {
-        return expenseRepository.findAll();
+        String tenantId = TenantContext.getTenantId();
+        return expenseRepository.findByTenantId(tenantId);
     }
 
 
     public Optional<Expenses> get(String id) {
+        String tenantId = TenantContext.getTenantId();
         try {
-            return expenseRepository.findById(id);
+            return expenseRepository.findByIdAndTenantId(id, tenantId);
         } catch (Exception e) {
             throw new RuntimeException("id not found");
         }
     }
 
     public Object getExpenseById(String id) {
+        String tenantId = TenantContext.getTenantId();
         if (id == null || id.isEmpty()) {
-            return expenseRepository.findAll(); // Return all expenses if id is not provided
+            return expenseRepository.findByTenantId(tenantId); 
         }
-        return expenseRepository.findById(id).orElse(null); // Return expense if found, otherwise null
+        return expenseRepository.findByIdAndTenantId(id, tenantId).orElse(null);
     }
 
     public ResponseEntity<String> deleteExpenseById(String id) {
+        String tenantId = TenantContext.getTenantId();
         try {
-            Optional<Expenses> expenses = expenseRepository.findById(id);
-            if (expenses.isPresent()) {
-                expenseRepository.deleteById(id);
+            if (expenseRepository.findByIdAndTenantId(id, tenantId).isPresent()) {
+                expenseRepository.deleteByIdAndTenantId(id, tenantId);
+                // Should ideally revert sales update too, but for simplicity leaving as is
                 return ResponseEntity.ok("Deleted successfully");
             } else {
-                return ResponseEntity.badRequest().body("Expense with this id doesn't found");
+                return ResponseEntity.badRequest().body("Expense with this id not found");
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -87,6 +97,8 @@ public class ExpenseService {
 
 
     public ExpenseDto filterReceiptByDate(LocalDateTime startOfDay, LocalDateTime endOfDay) {
+        String tenantId = TenantContext.getTenantId();
+        
         if (startOfDay == null && endOfDay != null) {
             startOfDay = endOfDay.with(LocalTime.MIN);
         }
@@ -94,15 +106,13 @@ public class ExpenseService {
         if (startOfDay != null && endOfDay == null) {
             endOfDay = startOfDay.with(LocalTime.MAX);
         }
-        List<Expenses> expenses =expenseRepository.findByCreatedDateBetween(startOfDay,endOfDay);
-        double receiptsCount = expenses.stream().count();
+        
+        List<Expenses> expenses = expenseRepository.findByTenantIdAndCreatedDateBetween(tenantId, startOfDay, endOfDay);
+        double receiptsCount = expenses.size();
 
         double totalExpenses = expenses.stream()
                 .mapToDouble(Expenses::getAmount)
                 .sum();
         return new ExpenseDto(expenses, receiptsCount, totalExpenses);
     }
-
-    }
-
-
+}

@@ -13,14 +13,27 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(InvalidJwtException.class)
     public ResponseEntity<String> handleInvalidJwtException(InvalidJwtException ex) {
         return new ResponseEntity<>("Invalid JWT", HttpStatus.UNAUTHORIZED);
     }
+
     @ExceptionHandler(EmptyTokenException.class)
     public ResponseEntity<String> handleEmptyTokenException(EmptyTokenException ex) {
         return new ResponseEntity<>("Empty token is not acceptable", HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(InviteAlreadyUsedException.class)
+    public ResponseEntity<String> handleInviteAlreadyUsedException(InviteAlreadyUsedException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT); // 409
+    }
+
+    @ExceptionHandler(InviteExpiredException.class)
+    public ResponseEntity<String> handleInviteExpiredException(InviteExpiredException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST); // 400
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleSecurityException(Exception exception) {
         ProblemDetail errorDetail = null;

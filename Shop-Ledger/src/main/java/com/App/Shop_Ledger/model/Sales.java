@@ -8,6 +8,8 @@ import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -16,10 +18,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Sales {
     @Id
     private String id;
+    private String tenantId;
     private double totalSalesByCard;
     private double totalAmountTransferredToAccount;
     private double totalSalesByCash;
     private double grossSale;
     private double totalExpense;
     private double discounts;
+    private LocalDateTime recordDate;
 }

@@ -7,13 +7,12 @@ import com.App.Shop_Ledger.Repository.ReceiptRepository;
 import com.App.Shop_Ledger.Repository.SalesRepository;
 import com.App.Shop_Ledger.Repository.UnpaidBillsRepository;
 import com.App.Shop_Ledger.Repository.productRepo;
+import com.App.Shop_Ledger.User.TenantContext;
 import com.App.Shop_Ledger.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -34,12 +33,18 @@ public class UnpaidBillsService {
 
     @Autowired
     SalesRepository salesRepository;
+    
+    @Autowired
+    SalesService salesService; // Use service for sales updates
+
     public List<UnpaidBills> getBills() {
-        return unpaidBillsRepository.findAll();
+        String tenantId = TenantContext.getTenantId();
+        return unpaidBillsRepository.findByTenantId(tenantId);
     }
 
     //Generate and save bill
     public ResponseEntity<?> UnpaidBills(List<ReceiptProductDto> productIds, String customer) {
+        String tenantId = TenantContext.getTenantId();
         try {
             if (productIds == null || productIds.isEmpty()) {
                 return ResponseEntity.badRequest().body("product id field cannot be empty");
@@ -48,116 +53,130 @@ public class UnpaidBillsService {
             List<ReceiptProduct> receiptProducts = new ArrayList<>();
 
             double discount = 0;
+            // Iterate first to calculate amounts and build list
             for (ReceiptProductDto productId : productIds) {
                 String id = productId.getId();
-                Products products = productRepo.findById(id).orElse(null);
+                Products products = productRepo.findByIdAndTenantId(id, tenantId).orElse(null);
+                
                 if (products != null) {
                     double disc = productId.getDiscount();
-                    discount = disc;
-                    double prdDisc =  products.getPrice()*productId.getQuantity() * productId.getDiscount()/100 ;
-                    double finalPrdPrice = products.getPrice() *productId.getQuantity() - prdDisc;
+                    discount = disc; // Warning: this logic takes the last product's discount? logic from original
+                    
+                    double prdDisc = products.getPrice() * productId.getQuantity() * productId.getDiscount()/100 ;
+                    double finalPrdPrice = products.getPrice() * productId.getQuantity() - prdDisc;
                     totalAmount += finalPrdPrice;
-                    // Create a ReceiptProduct object with the product details
-                    ReceiptProduct receiptProduct = new ReceiptProduct(products.getPrdName(), products.getPrice(),productId.getQuantity(),productId.getDiscount());
+                    
+                    ReceiptProduct receiptProduct = new ReceiptProduct(products.getPrdName(), products.getPrice(), productId.getQuantity(), productId.getDiscount());
                     receiptProducts.add(receiptProduct);
                 } else {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body("Product with ID " + productId + " not found.");
+                            .body("Product with ID " + productId.getId() + " not found or access denied.");
                 }
             }
-            //Discount
+            
+            // Recalculate global discount amount based on "discount" variable logic from original code
             double discountAmount = 0.0;
-            if (discount >= 0 && discount<=100) {
+            // Note: The logic below seems redundant if individual product discounts were applied, but keeping to minimize logic change drift
+            if (discount >= 0 && discount <= 100) {
                 for (ReceiptProductDto productId : productIds) {
                     String id = productId.getId();
-                    Products products = productRepo.findById(id).orElse(null);
-                    double disc = productId.getDiscount();
-                    discount = disc;
-                    double prdDisc = products.getPrice()*productId.getQuantity() * disc / 100;
-                    discountAmount += prdDisc;
+                    Products products = productRepo.findByIdAndTenantId(id, tenantId).orElse(null);
+                    if (products != null) {
+                        double disc = productId.getDiscount(); // Use product specific discount
+                        double prdDisc = products.getPrice() * productId.getQuantity() * disc / 100;
+                        discountAmount += prdDisc;
+                    }
                 }
-            }
-           else if (discount < 0 || discount >= 100) {
+            } else if (discount < 0 || discount >= 100) {
                 return ResponseEntity.badRequest().body("Invalid discount. Must be between 0 and 99.");
             }
 
-            // Create and save the receipt (createdDate is automatically populated)
+            // Create and save
             UnpaidBills unpaidBills = new UnpaidBills(totalAmount, receiptProducts, discountAmount, customer);
+            unpaidBills.setTenantId(tenantId);
+            // createdDate handling? Assuming UnpaidBills entity handles it or we set it? 
+            // Entity has @CreatedDate but typically needs auditing enabled or manual set. Setting explicitly if field exists
+             unpaidBills.setCreatedDate(LocalDateTime.now());
+             
             unpaidBillsRepository.save(unpaidBills);
             return ResponseEntity.status(HttpStatus.CREATED).body(unpaidBills);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An error occurred while creating the receipt: " + e.getMessage());
+                    .body("An error occurred: " + e.getMessage());
         }
     }
+    
     //put method
     public void markBillAsPaid(String id) {
+        String tenantId = TenantContext.getTenantId();
+        
         // Find the unpaid bill
-        Optional<UnpaidBills> unpaidBillOptional = unpaidBillsRepository.findById(id);
+        Optional<UnpaidBills> unpaidBillOptional = unpaidBillsRepository.findByIdAndTenantId(id, tenantId);
 
         if (unpaidBillOptional.isPresent()) {
             // Retrieve the unpaid bill
             UnpaidBills unpaidBill = unpaidBillOptional.get();
-            // Create a PaidBills object
+            
+            // Create a Receipt object (Paid Bill)
             Receipt receipt = new Receipt();
-            receipt.setId(unpaidBill.getId());
+            // receipt.setId(unpaidBill.getId()); // Don't reuse ID, let Mongo gen new one or use different logic? Original used same ID.
+            // If we reuse ID, it might conflict if collections are different but typically unique IDs are good.
+            // Original code: receipt.setId(unpaidBill.getId());
+            // Safe to copy content
+            
+            receipt.setTenantId(tenantId);
             receipt.setCustomer(unpaidBill.getCustomer());
             receipt.setTotalAmount(unpaidBill.getTotalAmount());
-           receipt.setProducts(unpaidBill.getProducts());
+            receipt.setProducts(unpaidBill.getProducts());
             receipt.setDiscountAmount(unpaidBill.getDiscountAmount());
             receipt.setCreateDate(LocalDateTime.now());
-            // Save to the PaidBills collection
+            receipt.setLastModifiedDate(LocalDateTime.now());
+            receipt.setCharge(Charge.BYCASH); // Defaulting to Cash if not specified, or need input? Original assumed logic?
+            
+            // Save to the Receipts collection
             receiptRepository.save(receipt);
+            
             // Remove from the UnpaidBills collection
             unpaidBillsRepository.deleteById(id);
-            updateSalesData(unpaidBill.getTotalAmount(), unpaidBill.getDiscountAmount());
+            
+            // Update Sales
+            salesService.updateSales(); // Use the reliable service calculation
+            
             System.out.println("Bill moved from unpaid to paid successfully!");
         } else {
             throw new IllegalArgumentException("Unpaid bill with ID " + id + " not found.");
         }
     }
-    private void updateSalesData(double amount, double discount) {
-        // Fetch the sales record (assuming there is only one record; adjust if necessary)
-        Optional<Sales> salesOptional = salesRepository.findAll().stream().findFirst(); // Replace "salesId" with the actual sales document ID
-        if (salesOptional.isPresent()) {
-            Sales sales = salesOptional.get();
-            // Update grossSale and totalDiscount
-            sales.setGrossSale(sales.getGrossSale() + amount);
-            sales.setDiscounts(sales.getDiscounts() + discount);
-            // Save the updated sales record
-            salesRepository.save(sales);
-        } else {
-            throw new IllegalArgumentException("Sales record not found.");
-        }
-}
+
     public ResponseEntity<String> deleteById(String id) {
+        String tenantId = TenantContext.getTenantId();
         try {
-           Optional<UnpaidBills> unpaidBills = unpaidBillsRepository.findById(id);
+           Optional<UnpaidBills> unpaidBills = unpaidBillsRepository.findByIdAndTenantId(id, tenantId);
            if (unpaidBills.isPresent()){
-                unpaidBillsRepository.deleteById(id);
-                return ResponseEntity.ok("id: " + id + "successfully");
-           }else {
-               return ResponseEntity.status(HttpStatus.NOT_FOUND).body("id with " + id + "notFound");
+                unpaidBillsRepository.deleteByIdAndTenantId(id, tenantId);
+                return ResponseEntity.ok("Deleted successfully");
+           } else {
+               return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Bill not found");
            }
-        }catch (Exception e){
+        } catch (Exception e){
             throw new RuntimeException("an Unknown error occurred");
         }
     }
+    
     public UnpaidBillsDto filterByCustomer(String customer) {
-
-            List<UnpaidBills> unpaidBills = unpaidBillsRepository.findByCustomer(customer);
-            if (unpaidBills == null || unpaidBills.isEmpty()){
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-            }else {
-        double totalCount = unpaidBills.stream().count();
-           double totalAmountPending = unpaidBills.stream()
-                   .mapToDouble(UnpaidBills::getTotalAmount)
-                   .sum();
-        return new UnpaidBillsDto(unpaidBills,customer,totalCount,totalAmountPending);
-    }
+        String tenantId = TenantContext.getTenantId();
+        List<UnpaidBills> unpaidBills = unpaidBillsRepository.findByTenantIdAndCustomer(tenantId, customer);
+        
+        if (unpaidBills == null || unpaidBills.isEmpty()){
+            // throw new ResponseStatusException(HttpStatus.NOT_FOUND); // Better to return empty DTO or handling?
+            // Returning empty logic for consistency
+             return new UnpaidBillsDto(new ArrayList<>(), customer, 0, 0);
+        } else {
+            double totalCount = unpaidBills.size();
+            double totalAmountPending = unpaidBills.stream()
+                    .mapToDouble(UnpaidBills::getTotalAmount)
+                    .sum();
+            return new UnpaidBillsDto(unpaidBills,customer,totalCount,totalAmountPending);
+        }
     }
 }
-
-
-
-

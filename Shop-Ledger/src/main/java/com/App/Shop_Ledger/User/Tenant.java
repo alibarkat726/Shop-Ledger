@@ -12,7 +12,9 @@ public class Tenant {
     @Id
     private String id;
     private String name;
+    private String email; // Tenant admin email
     private String plan;
     private String status;
+    private String createdAt; // Timestamp of tenant creation
 }
 

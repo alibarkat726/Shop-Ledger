@@ -33,7 +33,7 @@ public class MyUserDetailsService implements UserDetailsService {
         Set<String> roleSet = new HashSet<>();
 
             if (usersList.getRole() != null) {
-                Arrays.stream(usersList.getRole().split(","))
+                Arrays.stream(usersList.getRole().toString().split(","))
                         .map(String::trim)
                         .forEach(roleSet::add);
             }

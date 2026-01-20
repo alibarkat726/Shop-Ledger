@@ -29,45 +29,28 @@ public class EmployeeInviteService {
     public void inviteEmployee(InviteEmployeeRequest request) {
 
         String tenantId = TenantContext.getTenantId();
-
-        // Prevent duplicate email
         if (userRepo.existsByUsername(request.getEmail())) {
             throw new RuntimeException("User already exists");
         }
-
-        // 1️⃣ Create PENDING user
-        Users user = new Users();
-        user.setUsername(request.getEmail());
-        user.setTenantId(tenantId);
-        user.setRole(request.getRole());
-        user.setPermissions(getPermissionsForRole(request.getRole()));
-        user.setStatus("PENDING");
-
-        userRepo.save(user);
-
-        // 2️⃣ Generate invite token
         String token = UUID.randomUUID().toString();
-
         InviteToken inviteToken = new InviteToken();
-        inviteToken.setUserId(user.getId());
+        inviteToken.setEmail(request.getEmail());
         inviteToken.setToken(token);
+        inviteToken.setRole(request.getRole());
+        inviteToken.setTenantId(tenantId);
         inviteToken.setExpiresAt(
                 new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24) // 24h
         );
-
+        inviteToken.setUsed(false); // Mark as unused
         inviteTokenRepo.save(inviteToken);
-
-        // 3️⃣ Send email
         String link = "https://yourapp.com/accept-invite?token=" + token;
         emailService.sendInvite(request.getEmail(), link);
     }
-
     private List<String> getPermissionsForRole(String role) {
         return switch (role) {
             case "CASHIER" -> List.of("CREATE_RECEIPT");
-            case "MANAGER" -> List.of("CREATE_RECEIPT", "VIEW_REPORTS");
+            case "MANAGER" -> List.of("CREATE_RECEIPT", "VIEW_REPORTS", "MANAGE_EMPLOYEES", "VIEW_AI_INSIGHTS","MANAGER");
             default -> throw new RuntimeException("Invalid role");
         };
     }
 }
-

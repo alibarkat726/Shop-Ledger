@@ -3,6 +3,7 @@ package com.App.Shop_Ledger.Service;
 import com.App.Shop_Ledger.Dto.ProductDto;
 import com.App.Shop_Ledger.Repository.CategoryRepository;
 import com.App.Shop_Ledger.Repository.productRepo;
+import com.App.Shop_Ledger.User.TenantContext;
 import com.App.Shop_Ledger.User.UserRepo;
 import com.App.Shop_Ledger.model.Category;
 import com.App.Shop_Ledger.model.Products;
@@ -20,25 +21,24 @@ import java.util.Map;
 import java.util.Optional;
 @Service
 public class productService {
-
     @Autowired
     productRepo productRepo;
-
     @Autowired
     CategoryRepository categoryRepository;
-
     @Autowired
     UserRepo userRepo;
-
     public List<Products> getAllPrd(Products products) {
-        return productRepo.findAll();
+        String tenantId = TenantContext.getTenantId();
+        return productRepo.findByTenantId(tenantId);
     }
 
     public ResponseEntity<Map<String, Object>> deleteProduct(String id) {
         Map<String, Object> response = new HashMap<>();
+        String tenantId = TenantContext.getTenantId();
+        
         try {
-            if (productRepo.findById(id).isPresent()) {
-                productRepo.deleteById(id);
+            if (productRepo.findByIdAndTenantId(id, tenantId).isPresent()) {
+                productRepo.deleteByIdAndTenantId(id, tenantId);
                 response.put("status", "success");
                 response.put("message", "Product deleted successfully");
                 return ResponseEntity.ok(response);
@@ -53,16 +53,20 @@ public class productService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+    
     public ResponseEntity<Map<String, Object>> updateProduct(String id, Products updatedProduct) {
         Map<String, Object> response = new HashMap<>();
+        String tenantId = TenantContext.getTenantId();
+        
         try {
-            Products updated = productRepo.findById(id).map(existingProduct -> {
+            Products updated = productRepo.findByIdAndTenantId(id, tenantId).map(existingProduct -> {
                 // Update existing product with new values
                 existingProduct.setPrdName(updatedProduct.getPrdName());
                 existingProduct.setCategory(updatedProduct.getCategory());
                 existingProduct.setPrice(updatedProduct.getPrice());
                 return productRepo.save(existingProduct);
             }).orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+            
             response.put("status", "success");
             response.put("message", "Product updated successfully");
             response.put("data", updated);
@@ -73,37 +77,37 @@ public class productService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+    
     public List<Products> getprd(String id) {
-        Products product = productRepo.findById(id).orElse(null);
+        String tenantId = TenantContext.getTenantId();
+        Products product = productRepo.findByIdAndTenantId(id, tenantId).orElse(null);
         if (product != null) {
             return List.of(product);
         } else {
-            return productRepo.findAll();
+            return productRepo.findByTenantId(tenantId);
         }
     }
+    
     public List<Products> searchProduct(String keyword, boolean useFullText) {
-        if (useFullText) {
-            return productRepo.searchByFullText(keyword);
-        }
-        return productRepo.searchByPartialMatch(keyword);
+        String tenantId = TenantContext.getTenantId();
+        return productRepo.searchByTenantIdAndKeyword(tenantId, keyword);
     }
+    
     public ResponseEntity<?> addPrd(ProductDto productDto) {
-        Category category = categoryRepository.findByName(productDto.getCategory());
-        System.out.println(category);
+        String tenantId = TenantContext.getTenantId();
+        Category category = categoryRepository.findByNameAndTenantId(productDto.getCategory(), tenantId);
         if (category == null) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("message", "This type of category not found in the category");
+            response.put("message", "This type of category not found in your categories");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } else {
             Products products = new Products();
-            products.setId(productDto.getId());
+            products.setTenantId(tenantId); // Set tenant ID
             products.setPrdName(productDto.getPrdName());
             products.setPrice(productDto.getPrice());
             products.setCategory(category);
-            // products.setUserId(userId);
             productRepo.save(products);
-
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Product added successfully");
@@ -111,6 +115,7 @@ public class productService {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
     }
+}
     // Retrieve all products for a given user
 //    public ResponseEntity<?> getProductsByUser(String userId) {
 //        // Validate if the user exists
@@ -121,7 +126,7 @@ public class productService {
 //        List<Products> products = productRepo.findByUserId(userId);
 //        return ResponseEntity.ok(products);
 //    }
-}
+
 
   
       

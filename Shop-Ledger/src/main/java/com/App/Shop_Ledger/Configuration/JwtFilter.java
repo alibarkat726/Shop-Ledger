@@ -2,10 +2,7 @@
 
 package com.App.Shop_Ledger.Configuration;
 import com.App.Shop_Ledger.Service.JwtService;
-import com.App.Shop_Ledger.Service.MyUserDetailsService;
 import com.App.Shop_Ledger.User.TenantContext;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.ArrayList;
 
 
 @Component
@@ -39,8 +37,11 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         if (path.equals("/login") ||
                 path.equals("/register") ||
+                path.startsWith("/api/invites/accept") ||
                 path.equals("/api/otp/send") ||
-                path.equals("/api/otp/verify")) {
+                path.equals("/api/otp/verify") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui")) {
 
             filterChain.doFilter(request, response);
             return;
@@ -65,13 +66,18 @@ public class JwtFilter extends OncePerRequestFilter {
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 // 🔐 Convert permissions to authorities
-                List<SimpleGrantedAuthority> authorities =
-                        permissions.stream()
-                                .map(SimpleGrantedAuthority::new)
-                                .toList();
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                
+                if (permissions != null) {
+                    authorities.addAll(permissions.stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .toList());
+                }
 
                 // Optional: keep role authority
-                authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                if (role != null) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                }
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
@@ -89,16 +95,16 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-
+            System.out.println("JWT Filter Error: " + e.getMessage());
+            e.printStackTrace();
             TenantContext.clear();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid or expired token");
+            response.getWriter().write("Invalid or expired token: " + e.getMessage()); // Expose error for debugging
         } finally {
-            TenantContext.clear();
         }
+            TenantContext.clear();
     }
 }

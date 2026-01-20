@@ -31,6 +31,7 @@ public class Receipt {
 
     @Id
     private String id;
+    private String tenantId;
     private String customer;
     private double totalAmount;
     private List<ReceiptProduct> products;

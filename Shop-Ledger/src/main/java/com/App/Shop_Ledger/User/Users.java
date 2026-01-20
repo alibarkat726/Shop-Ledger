@@ -1,6 +1,7 @@
 package com.App.Shop_Ledger.User;
 
 
+import com.App.Shop_Ledger.Dto.Roles;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -23,9 +24,10 @@ public class Users {
     private String username; // email
     private String password;
 
-    private String role;
+    private Roles role;
     private List<String> permissions;
 
+    private boolean enabled; // true = active, false = pending invite acceptance
     private String status;
 }
 

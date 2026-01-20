@@ -8,7 +8,5 @@ import java.util.Optional;
 public interface InviteTokenRepo extends MongoRepository<InviteToken, String> {
 
     Optional<InviteToken> findByToken(String token);
-
-    void deleteByUserId(String userId);
 }
 

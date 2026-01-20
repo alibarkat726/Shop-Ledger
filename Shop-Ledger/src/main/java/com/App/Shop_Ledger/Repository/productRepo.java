@@ -23,5 +23,17 @@ public interface productRepo extends MongoRepository<Products, String > {
 
     List<Products> findByCategory(Category category);
 
-//    List<Products> findByUserId(String userId);
+
+    List<Products> findByTenantId(String tenantId);
+    Optional<Products> findByIdAndTenantId(String id, String tenantId);
+    void deleteByIdAndTenantId(String id, String tenantId);
+    
+    @Query("{$and: [ " +
+            "{'tenantId': ?0}, " +
+            "{$or: [ " +
+            "{'prdName': { '$regex': ?1, '$options': 'i' }}, " +
+            "{'category.name': { '$regex': ?1, '$options': 'i' }}" +
+            "] }" +
+            "] }")
+    List<Products> searchByTenantIdAndKeyword(String tenantId, String keyword);
 }

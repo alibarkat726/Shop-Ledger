@@ -16,6 +16,8 @@ public class Products {
     @Id
     private String id;
 
+    private String tenantId;
+
     @TextIndexed
     private String prdName;
     @TextIndexed

@@ -8,10 +8,8 @@ import java.util.Optional;
 @Repository
 public interface TenantRepo extends MongoRepository<Tenant, String> {
 
-    // Find tenant by business name (optional)
     Optional<Tenant> findByName(String name);
 
-    // Check if tenant exists (useful for validations)
     boolean existsByName(String name);
 }
 

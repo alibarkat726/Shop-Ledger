@@ -1,5 +1,4 @@
-package com.App.Shop_Ledger.model;
-
+package com.App.Shop_Ledger.Dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,11 +11,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "Category")
-public class Category {
-    @Id
-    private String id;
-    private String tenantId;
+public class CategoryDto {
     private String name;
     private String description;
 }
+

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 public class Expenses {
     @Id
     private String id;
+    private String tenantId;
     private double amount;
     private String purchasedItem;
     private String description;
